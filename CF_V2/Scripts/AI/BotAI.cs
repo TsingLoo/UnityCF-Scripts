@@ -1,11 +1,12 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using Unity.FPS.Game;
 using UnityEngine;
 
 namespace Unity.FPS.AI
 {
     /// <summary>
-    /// BotMobile
+    /// BotMobile / State
     /// </summary>
     [RequireComponent(typeof(BotController))]
     public class BotAI : MonoBehaviour
@@ -21,7 +22,7 @@ namespace Unity.FPS.AI
         public Animator BotAnimator;
 
         [Range(0f, 1f)]
-        public float AttackStopDistanceRatio = 0.5f;
+        public float AttackStopDistanceRatio = 0.7f;
 
 
         [Header("Sound")] public AudioClip MovementSound;
@@ -101,8 +102,8 @@ namespace Unity.FPS.AI
             _botController.IsRunning = moveSpeed > 0.01;
             if (_botController.IsRunning)
             {
-                _botController.AnimController.XInput = 0;
-                _botController.AnimController.YInput = 1;
+                _botController.animController.XInput = 0;
+                _botController.animController.YInput = 1;
             }
 
             // todo 
@@ -187,7 +188,7 @@ namespace Unity.FPS.AI
                         Vector3 targetPosition = _botController.KnownTarget.transform.position;
                         if (Vector3.Distance(targetPosition,
                                 _botController.BotView.DetectionSourcePoint.position)
-                            >= (AttackStopDistanceRatio * _botController.BotView.AttackRange))
+                            >= GetAttackStopDistance())
                         {
                             _botController.SetNavDestination(targetPosition);
                         }
@@ -209,6 +210,17 @@ namespace Unity.FPS.AI
                     }
                     break;
             }
+        }
+
+        private float GetAttackStopDistance()
+        {
+            var dist = _botController.BotView.GetAttackRange();
+            if(dist >= _botController.BotView.GetDefaultAttackRange())
+            {
+                dist *= AttackStopDistanceRatio;
+            }
+
+            return dist;
         }
 
         void OnAttack()

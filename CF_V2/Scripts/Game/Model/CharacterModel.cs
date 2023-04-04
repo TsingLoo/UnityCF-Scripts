@@ -7,10 +7,11 @@ namespace Unity.FPS.Game
     {
 
         [Serializable]
-        public enum Sex
+        public enum Sex // For animation
         {
             Man = 0,
-            Woman = 1
+            Woman = 1,
+            Hulk = 2,
         }
 
         public enum FxType
@@ -24,10 +25,6 @@ namespace Unity.FPS.Game
         public string[] socketItemsName;
 
         public Sex sex;
-
-        public Animator characterAnimator;
-
-        public Animator handAnimator;
 
         [SerializeField]
         private CharacterEffect characterEffect;

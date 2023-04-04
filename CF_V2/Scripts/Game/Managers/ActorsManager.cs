@@ -8,7 +8,6 @@ namespace Unity.FPS.Game
         public List<Actor> Actors { get; private set; }
         public GameObject Player { get; private set; }
 
-
         void Awake()
         {
             Actors = new List<Actor>();
@@ -17,10 +16,35 @@ namespace Unity.FPS.Game
         public void SetPlayer(GameObject player)
         {
             Player = player;
-
-
         }
 
+        #region getters
+        public List<Actor> GetAllActors()
+        {
+            var newList = new List<Actor>();
+            foreach (var actor in Actors)
+            {
+                newList.Add(actor);
+            }
+
+            return newList;
+        }
+
+        public List<Actor> GetBotActors()
+        {
+            var newList = new List<Actor>();
+            foreach (var actor in Actors)
+            {
+                if (!actor.isPlayer)
+                {
+                    newList.Add(actor);
+                }
+            }
+
+            return newList;
+        }
+
+        #endregion
         // End
     }
 }

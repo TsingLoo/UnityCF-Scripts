@@ -185,7 +185,7 @@ namespace Unity.FPS.UI
             if (!m_AudioSource)
             {
                 m_AudioSource = gameObject.AddComponent<AudioSource>();
-                m_AudioSource.outputAudioMixerGroup = AudioUtility.GetAudioGroup(AudioUtility.AudioGroups.HUDObjective);
+                m_AudioSource.outputAudioMixerGroup = AudioUtility.GetAudioGroup(AudioUtility.AudioGroups.Hud);
             }
 
             m_AudioSource.PlayOneShot(sound);

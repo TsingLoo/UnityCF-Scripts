@@ -19,7 +19,7 @@ namespace Unity.FPS.Gameplay
     }
 
     [RequireComponent(typeof(AudioSource))]
-    public class WeaponController : MonoBehaviour
+    public class WeaponController : BaseBehaviour
     {
         [Header("Information")]
         public string WeaponName;
@@ -29,19 +29,34 @@ namespace Unity.FPS.Gameplay
         public bool IsPlayer { get; set; }
 
         [HideInInspector]
-        public WeaponAnimationController AnimController;
+        public WeaponAnimationController animController;
 
         public EWeaponState CurrentState { get; set; }
 
         [Header("Fire Mode")]
+        public List<EWeaponFireMode> FireModes; // todo ref: set in db
+        public EWeaponFireMode CurrentFireMode;
+        
+        public int BurstSize = 3;
+        public float BurstFireGap = 0.5f; // fire gap between each burst
+        public float BurstGap = 0.05f; // fire gap inside a burst
+
+        // todo
+        // burst recoil / spread
+        [Header("Bullets")]
         public EProjectileType BulletType = EProjectileType.Raycast;
         [Tooltip("Amount of bullets per shot")]
         public int BulletsPerShot = 1;
         // todo shot gun
         //public int BulletPellets = 8;
 
+        [Header("Projectile")]
+        public ProjectileBase ProjectilePrefab;
+        public float ProjectileForce;
+
         public bool DisableOnEmpty;
 
+        #region Recoil
         // weapon position
         [Header("Weapon Recoil")]
         [Range(0f, 2f)]
@@ -70,9 +85,7 @@ namespace Unity.FPS.Gameplay
         public float cameraRecoilRecoverSpeed = 30f;
         public float cameraRecoilMax = 15f;
 
-        [Header("Projectile")]
-        public ProjectileBase ProjectilePrefab;
-        public float ProjectileForce;
+        #endregion
 
         [Header("Aiming")]
         public Vector3 AimOffset;
@@ -114,12 +127,12 @@ namespace Unity.FPS.Gameplay
 
         /// <summary>
         /// Shot Timer Out
+        /// not is firing
         /// </summary>
         public bool FireTimerOut { get; private set; } = true;
 
-
-        int _ammoContent;
-        int _ammoCarry;
+        int _ammoContent; // ammo in chamber
+        int _ammoCarry;   // ammo in bag
 
         public int GetAmmoContent() => _ammoContent;
         public int GetAmmoCarry() => _ammoCarry;
@@ -216,13 +229,22 @@ namespace Unity.FPS.Gameplay
 
             }
 
-            AnimController = GetComponent<WeaponAnimationController>();
+            animController = GetComponent<WeaponAnimationController>();
 
             // ammo
             _ammoContent = WeaponData.ClipSize;
             _ammoCarry = WeaponData.ClipSize * WeaponData.DefaultClips;
 
-            if (WeaponData.WeaponFireMode == EWeaponFireMode.Charge && MaxChargeDuration == 0)
+            // todo ref
+            // weapon fire mode
+            if (!FireModes.HasValue())
+            {
+                FireModes.Add(WeaponData.WeaponFireMode);
+            }
+            CurrentFireMode = FireModes.FirstOrDefault();
+
+            if (CurrentFireMode == EWeaponFireMode.Charge 
+                && MaxChargeDuration == 0)
             {
                 MaxChargeDuration = WeaponData.AnimDtos
                     .FirstOrDefault(it => it.AnimNameAffix == AnimNames.FireReady)
@@ -241,7 +263,7 @@ namespace Unity.FPS.Gameplay
                 m_ContinuousShootAudioSource.playOnAwake = false;
                 m_ContinuousShootAudioSource.clip = ContinuousShootLoopSfx;
                 m_ContinuousShootAudioSource.outputAudioMixerGroup =
-                    AudioUtility.GetAudioGroup(AudioUtility.AudioGroups.WeaponShoot);
+                    AudioUtility.GetAudioGroup(AudioUtility.AudioGroups.Weapon);
 
                 m_ContinuousShootAudioSource.loop = true;
             }
@@ -293,7 +315,7 @@ namespace Unity.FPS.Gameplay
         {
             FireTimerOut = true;
 
-            if (WeaponData.WeaponFireMode == EWeaponFireMode.Charge)
+            if (CurrentFireMode == EWeaponFireMode.Charge)
             {
                 ResetCharge();
             }
@@ -391,15 +413,8 @@ namespace Unity.FPS.Gameplay
 
             var dataFilePath = Path.Combine(GlobalConstants.ResourceFolder,
                 $"DB/WeaponData" + ExcelHelper.Extension);
-
-            //var dataFilePath = Path.Combine(GlobalConstants.ResourceFolder,
-            //    $"Weapons/{assetName}/WeaponData",
-            //    assetName + "_Data" + ExcelHelper.Extension);
-
-            var jsonFilePath = Path.Combine(GlobalConstants.ResourceFolder,
-                $"DB/WeaponDatas",
-                assetName + "_Data" + ".txt");
-
+            
+            Debug.Assert(File.Exists(dataFilePath));
             if (File.Exists(dataFilePath))
             {
                 var dataDto = MiniExcelLibs.MiniExcel
@@ -407,29 +422,13 @@ namespace Unity.FPS.Gameplay
                         (dataFilePath)
                         .ToList()
                         .FirstOrDefault(it => it.WeaponAssetName == assetName);
+                Debug.Assert(dataDto != null);
 
                 WeaponData = dataDto;
                 dataRead = true;
                 excelRead = true;
             }
-            else
-            {
-                if (File.Exists(jsonFilePath))
-                {
-                    var jsonStr = File.ReadAllText(jsonFilePath);
-                    WeaponData = JsonUtility.FromJson<WeaponData>(jsonStr);
-                    dataRead = true;
-                }
-                else
-                {
-                    WeaponData = new WeaponData()
-                    {
-                        //WeaponName = WeaponName,
-                        //WeaponAssetName = WeaponAssetName,
-                        //WeaponAnimType = weaponAnimType,
-                    };
-                }
-            }
+            
             #endregion
 
             #region Load Anims
@@ -445,6 +444,7 @@ namespace Unity.FPS.Gameplay
                 $"Weapons/{assetName}/WeaponData",
                 assetName + "_Events" + ExcelHelper.Extension);
 
+            Debug.Assert(File.Exists(animExcelFilePath));
             if (File.Exists(animExcelFilePath))
             {
                 var clipDtos = MiniExcelLibs.MiniExcel
@@ -521,7 +521,7 @@ namespace Unity.FPS.Gameplay
 
                                 if (animEventDto.FunctionName.IsNotValid())
                                 {
-                                    animEventDto.FunctionName = nameof(AnimController.PlaySound);
+                                    animEventDto.FunctionName = nameof(animController.PlaySound);
                                 }
                             }
 
@@ -579,25 +579,7 @@ namespace Unity.FPS.Gameplay
                 .LoadAll<AudioClip>($"Weapons/{assetName}/Sounds")
                 .ToList();
 
-            // set data
-            if (dataRead)
-            {
-                //WeaponType = WeaponData.WeaponType;
-                //FireMode = WeaponData.WeaponFireMode;
-                ////WeaponBagPos = WeaponData.WeaponBagPos;
-                //WeaponAnimType = WeaponData.WeaponAnimType;
-
-                //FireGap = WeaponData.FireGap;
-                //HeavyGap = WeaponData.HeavyGap;
-                //HasAim = WeaponData.HasAim;
-                //HasHeavy = WeaponData.HasHeavy;
-
-                //ClipSize = WeaponData.ClipSize;
-                //DefaultClips = WeaponData.DefaultClips;
-                //MaxClips = WeaponData.MaxClips;
-            }
-
-            // prepare data
+            // prepare data for fire gap if not defined
             {
                 // fire gap
                 // control by animation
@@ -614,6 +596,7 @@ namespace Unity.FPS.Gameplay
                     WeaponData.FireGap = fireAnim.RealTime;
                 }
 
+                // heavy gap
                 if (WeaponData.HasHeavy
                     && WeaponData.HeavyGap == 0)
                 {
@@ -627,19 +610,15 @@ namespace Unity.FPS.Gameplay
             }
 
             #region create a new excel
-            if (!excelRead)
-            {
-                // todo
-                ExcelHelper.SaveAsReplaceAsync
-                    (Path.Combine(GlobalConstants.TempFolder,
-                        assetName + "_Data" + ExcelHelper.Extension),
-                        new List<WeaponData>() { WeaponData });
-            }
+            // no need to create, all data be read
 
-            //_weapon.OwnerPawn != null
-            //    && _weapon.OwnerPawn is PlayerController
-
-            // no need to output, all data be read
+            //if (!excelRead)
+            //{
+            //    ExcelHelper.SaveAsReplaceAsync
+            //        (Path.Combine(GlobalConstants.TempFolder,
+            //            assetName + "_Data" + ExcelHelper.Extension),
+            //            new List<WeaponData>() { WeaponData });
+            //}
             #endregion
         }
 
@@ -651,12 +630,17 @@ namespace Unity.FPS.Gameplay
             _ammoCarry += count;
         }
 
-        // todo could be simplify to 1: EjectShell()
-        void EjectShell(int bulletsPerShotFinal = 1)
+        private void EjectShell(int ejectNumber = 1)
         {
+            if(WeaponData.WeaponType == EWeaponType.Melee
+                || WeaponData.WeaponType == EWeaponType.Grenade)
+            {
+                return;
+            }
+
             if (EjectionPort != null)
             {
-                for (int i = 0; i < bulletsPerShotFinal; i++)
+                for (int i = 0; i < ejectNumber; i++)
                 {
                     Rigidbody nextShell = m_ShellPool.Dequeue();
 
@@ -672,13 +656,6 @@ namespace Unity.FPS.Gameplay
             }
         }
 
-        void PlaySFX(AudioClip sfx)
-        {
-            AudioUtility.CreateSFX(sfx,
-                transform.position,
-                AudioUtility.AudioGroups.WeaponShoot, 0.0f);
-        }
-
         public void FinishReload()
         {
             int chargeInClip = Mathf.Min(_ammoCarry,
@@ -692,9 +669,9 @@ namespace Unity.FPS.Gameplay
         {
             //the state will only change next frame
             CurrentState = EWeaponState.Reload;
-            if (AnimController)
+            if (animController)
             {
-                AnimController.TriggerReload();
+                animController.TriggerReload();
             }
 
             ResetCharge();
@@ -728,7 +705,7 @@ namespace Unity.FPS.Gameplay
         private void UpdateWeaponState()
         {
             EWeaponState newState;
-            newState = AnimController.GetWeaponState();
+            newState = animController.GetWeaponState();
 
             if (newState != CurrentState)
             {
@@ -805,9 +782,9 @@ namespace Unity.FPS.Gameplay
 
 
                 CurrentState = EWeaponState.Draw;
-                if (AnimController)
+                if (animController)
                 {
-                    AnimController.TriggerDraw();
+                    animController.TriggerDraw();
                 }
 
                 if (ChangeWeaponSfx)
@@ -816,9 +793,9 @@ namespace Unity.FPS.Gameplay
             // put away
             else
             {
-                if (AnimController)
+                if (animController)
                 {
-                    AnimController.TriggerPutAway();
+                    animController.TriggerPutAway();
                 }
 
                 // 1p
@@ -851,6 +828,7 @@ namespace Unity.FPS.Gameplay
         }
 
         /// <summary>
+        /// Update
         /// HandleFire / WeaponFire
         /// </summary>
         /// <param name="inputDown"></param>
@@ -860,7 +838,7 @@ namespace Unity.FPS.Gameplay
         public bool HandleShootInputs(bool inputDown, bool inputHeld, bool inputUp)
         {
             m_WantsToShoot = inputDown || inputHeld;
-            switch (WeaponData.WeaponFireMode)
+            switch (CurrentFireMode)
             {
                 case EWeaponFireMode.Semi:
                     {
@@ -872,7 +850,7 @@ namespace Unity.FPS.Gameplay
                         return false;
                     }
 
-
+                case EWeaponFireMode.Burst:
                 case EWeaponFireMode.Auto:
                     {
                         if (inputHeld)
@@ -881,9 +859,12 @@ namespace Unity.FPS.Gameplay
                         }
 
                         return false;
-
                     }
 
+                #region Charge weapon
+                // M134, Grenade
+                // seems no need to simplify,
+                // otherwise need seperate weapon controls above
                 case EWeaponFireMode.Charge:
                     {
                         if (inputHeld)
@@ -899,7 +880,8 @@ namespace Unity.FPS.Gameplay
                             }
                         }
 
-                        // Check if we released charge or if the weapon shoot autmatically when it's fully charged
+                        // release charge,
+                        // or weapon shoot autmatically when fully charged
                         if (inputUp
                             || (AutomaticReleaseOnCharged && CurrentCharge >= 1f))
                         {
@@ -917,8 +899,8 @@ namespace Unity.FPS.Gameplay
                         }
 
                         return false;
-
                     }
+                #endregion
 
                 default:
                     return false;
@@ -929,10 +911,19 @@ namespace Unity.FPS.Gameplay
         {
             if (CanFire())
             {
-                HandleShoot();
+                // burst
+                if(CurrentFireMode == EWeaponFireMode.Burst)
+                {
+                    StartCoroutine(HandleBurstShoot());
+                    StartCoroutine(ShootDelay(BurstFireGap));
+                }
+                else // no burst mode
+                {
+                    HandleShoot();
+                    StartCoroutine(ShootDelay(WeaponData.FireGap));
+                }
 
                 FireTimerOut = false;
-                StartCoroutine(ShootDelay(WeaponData.FireGap));
 
                 return true;
             }
@@ -968,9 +959,9 @@ namespace Unity.FPS.Gameplay
             // attack call in MeleeWeaponHeavy
             // todo heavy state
             CurrentState = EWeaponState.Fire;
-            if (AnimController)
+            if (animController)
             {
-                AnimController.TriggerHeavy();
+                animController.TriggerHeavy();
             }
         }
 
@@ -993,9 +984,9 @@ namespace Unity.FPS.Gameplay
                 UseAmmo(AmmoUsedOnStartCharge);
 
                 CurrentState = EWeaponState.FireReady;
-                if (AnimController)
+                if (animController)
                 {
-                    AnimController.TriggerFireReady();
+                    animController.TriggerFireReady();
                 }
                 LastChargeTriggerTimestamp = Time.time;
                 IsCharging = true;
@@ -1048,16 +1039,38 @@ namespace Unity.FPS.Gameplay
             _fireChargeDone = false;
         }
 
+        #region WeaponFire
+        private IEnumerator HandleBurstShoot()
+        {
+            for (int i = 0; i < BurstSize; i++)
+            {
+                // in case not enough bullet to fire
+                if (HasAmmoInWeapon())
+                {
+                    HandleShoot();
+                }
+
+                yield return new WaitForSeconds(BurstGap);
+            }
+        }
+
         /// <summary>
         /// WeaponFire
+        /// 1 bullet
         /// </summary>
         void HandleShoot()
         {
+            // burst mode not enough bullet to fire
+            if (!HasAmmoInWeapon()) 
+            {
+                return;
+            }
+
             CurrentState = EWeaponState.Fire;
             // animation
-            if (AnimController)
+            if (animController)
             {
-                AnimController.TriggerFire();
+                animController.TriggerFire();
                 if (OnWeaponFire != null)
                 {
                     OnWeaponFire.Invoke();
@@ -1081,7 +1094,7 @@ namespace Unity.FPS.Gameplay
             }
 
             // shell, todo 1 shell 8 pellets?
-            EjectShell(bulletsPerShotFinal);
+            EjectShell();
 
             // muzzle flash
             if (MuzzleFlashPrefab != null)
@@ -1101,7 +1114,7 @@ namespace Unity.FPS.Gameplay
             // sound
             if (!UseContinuousShootSound)
             {
-                if (AnimController)
+                if (animController)
                 {
                     // call in events
                     //AnimController.PlaySoundClip(AnimNames.Fire);
@@ -1116,6 +1129,8 @@ namespace Unity.FPS.Gameplay
             OnShoot?.Invoke();
             OnShootProcessed?.Invoke();
         }
+
+        #endregion
 
         private void ShotProjectile()
         {
@@ -1189,21 +1204,21 @@ namespace Unity.FPS.Gameplay
             Damageable damageable = collider.GetComponentInParent<Damageable>();
             if (damageable)
             {
-                damageable.HandleDamage(damage, false, this.gameObject);
+                damageable.HandleDamage(damage, WeaponData.DamageType, this.gameObject);
             }
 
             // impact vfx
             var tag = collider.tag;
 
-            var ImpactVfx = GameFlowManager.Instance.BulletVFXs
+            var ImpactVfx = GameFlowManager.Ins.BulletVFXs
                 .FirstOrDefault(it => it.name.Contains(tag));
-            var ImpactVfxLifetime = GameFlowManager.Instance.BulletVfxTime;
-            var ImpactVfxSpawnOffset = GameFlowManager.Instance.BulletHoleOffset;
+            var ImpactVfxLifetime = GameFlowManager.Ins.BulletVfxTime;
+            var ImpactVfxSpawnOffset = GameFlowManager.Ins.BulletHoleOffset;
 
             // todo default
             if (ImpactVfx == null)
             {
-                ImpactVfx = GameFlowManager.Instance.BulletVFXs
+                ImpactVfx = GameFlowManager.Ins.BulletVFXs
                     .FirstOrDefault(it => it.name.Contains(AllMaterials.Metal));
             }
 
@@ -1222,13 +1237,13 @@ namespace Unity.FPS.Gameplay
                 
                 // hole
                 // todo ref
-                var bulletHole = GameFlowManager.Instance.BulletHoles
+                var bulletHole = GameFlowManager.Ins.BulletHoles
                     .FirstOrDefault(it => it.name.Contains(AllMaterials.Metal));
                 // todo add random rotate
                 GameObject bulletHoleNew = Instantiate(bulletHole,
                     spawnPosition,
                     Quaternion.LookRotation(normal));
-                bulletHoleNew.SelfDestroy(GameFlowManager.Instance.BulletHoleTime);
+                bulletHoleNew.SelfDestroy(GameFlowManager.Ins.BulletHoleTime);
             }
 
             // todo blood fx
@@ -1240,7 +1255,6 @@ namespace Unity.FPS.Gameplay
             //    AudioUtility.CreateSFX(ImpactSfxClip, point, AudioUtility.AudioGroups.Impact, 1f, 3f);
             //}
         }
-
 
         protected bool IsValidHit(RaycastHit hit)
         {
@@ -1286,7 +1300,7 @@ namespace Unity.FPS.Gameplay
             int bulletsPerShotFinal = BulletsPerShot;
 
             // normal charge weapon, calculate bullet use
-            if (WeaponData.WeaponFireMode == EWeaponFireMode.Charge
+            if (CurrentFireMode == EWeaponFireMode.Charge
                 && !OnlyChargeFirst
                 && WeaponData.WeaponType != EWeaponType.Grenade)
             {
@@ -1455,6 +1469,25 @@ namespace Unity.FPS.Gameplay
         {
             return WeaponData.WeaponType != EWeaponType.Melee
                 && WeaponData.WeaponType != EWeaponType.Grenade;
+        }
+
+        public void SwitchFireMode()
+        {
+            // todo list ext
+            // https://stackoverflow.com/questions/24799820/get-previous-next-item-of-a-given-item-in-a-list
+
+            var id = FireModes.IndexOf(CurrentFireMode);
+            id++;
+
+            CurrentFireMode = FireModes.ElementAtOrDefault(id);
+        }
+
+        internal void SetupAudio()
+        {
+            if (!IsPlayer)
+            {
+                animController.SetupAudio3D();
+            }
         }
 
         // End

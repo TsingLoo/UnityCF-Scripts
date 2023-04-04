@@ -12,13 +12,13 @@ namespace Unity.FPS.UI
         void Update()
         {
             if (EventSystem.current.currentSelectedGameObject == gameObject
-                && Input.GetButtonDown(ButtonNames.k_ButtonNameSubmit))
+                && Input.GetButtonDown(ButtonNames.Submit))
             {
-                LoadTargetScene();
+                LoadDefaultScene();
             }
         }
 
-        public void LoadTargetScene()
+        public void LoadDefaultScene()
         {
             SceneManager.LoadScene(SceneName);
         }

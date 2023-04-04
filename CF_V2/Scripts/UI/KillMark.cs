@@ -14,6 +14,7 @@ namespace Unity.FPS.UI
     {
         public static KillMark Instance { get; private set; }
 
+        // todo rename
         public RectTransform _mainTransform;
         public Image _mainImage;
         public RectTransform _effectTransform;
@@ -100,16 +101,16 @@ namespace Unity.FPS.UI
         }
 
 
-        protected void ShowMark(EDamageType killType = EDamageType.Rifle)
+        protected void ShowMark(EDamageType killType = EDamageType.Bullet)
         {
             #region Init
             // head shot
             if (_killCount == 1
-                && killType != EDamageType.Rifle)
+                && killType != EDamageType.Bullet)
             {
                 switch (killType)
                 {
-                    case EDamageType.Rifle:
+                    case EDamageType.Bullet:
                         break;
                     case EDamageType.HeadShot:
                         {
@@ -120,7 +121,7 @@ namespace Unity.FPS.UI
                             killVoiceToPlay = headShotVoice;
                         }
                         break;
-                    case EDamageType.Knife:
+                    case EDamageType.Melee:
                         {
                             // mark
                             _mainImage.sprite = knifeKillMark;
@@ -129,7 +130,7 @@ namespace Unity.FPS.UI
                             killVoiceToPlay = knifeKillVoice;
                         }
                         break;
-                    case EDamageType.Granade:
+                    case EDamageType.Grenade:
                         {
                             // mark
                             _mainImage.sprite = granadeKillMark;

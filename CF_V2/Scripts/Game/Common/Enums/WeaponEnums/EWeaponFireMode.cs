@@ -12,9 +12,7 @@ namespace Unity.FPS.Game
         Semi = 1,
         Charge = 2,
 
-        /// <summary>
-        /// semi * 3
-        /// </summary>
+        // todo
         Burst = 3,
     }
 

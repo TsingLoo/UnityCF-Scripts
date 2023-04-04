@@ -13,6 +13,9 @@ namespace Unity.FPS.Gameplay
     {
         public List<Item> startWeapons;
 
+        // todo ref
+        public List<Item> startNanoWeapons;
+
         // currently not in use
         protected PawnController _pawnController;
         public Transform WeaponPosition1P;
@@ -23,7 +26,11 @@ namespace Unity.FPS.Gameplay
 
         public UnityAction<WeaponController> OnSwitchedToWeapon;
 
-        protected WeaponController[] _weapon1Ps = new WeaponController[6];// 0, 1~5
+        /// <summary>
+        /// have null slots !!!
+        /// 0, 1~5
+        /// </summary>
+        protected WeaponController[] _weapon1Ps = new WeaponController[6];
         public int CurrentBagPos { get; private set; } = -1;
 
         protected int _lastBagPos { get; set; } = -1;
@@ -117,6 +124,9 @@ namespace Unity.FPS.Gameplay
 
                 weapon1PNew.SourcePrefab = weapon1P.gameObject;
                 weapon1PNew.Setlayer((int)Weapon1PLayer);
+
+                // audio
+                weapon1PNew.SetupAudio();
 
                 // qc model
                 weapon1PNew.GetComponentInChildren<Camera>().Disable();
@@ -313,13 +323,14 @@ namespace Unity.FPS.Gameplay
             for (int i = 0; i < _weapon1Ps.Length; i++)
             {
                 // when weapon found, remove it
-                if (_weapon1Ps[i] == weapon1P)
+                if (weapon1P != null // ignore null slots
+                    && _weapon1Ps[i] == weapon1P)
                 {
                     // 3p
-                    Destroy(weapon1P.weapon3P);
+                    weapon1P.weapon3P.SelfDestroy();
                     // 1p
                     _weapon1Ps[i] = null;
-                    Destroy(weapon1P.gameObject);
+                    weapon1P.gameObject.SelfDestroy();
 
                     if (OnRemovedWeapon != null)
                     {
@@ -372,6 +383,21 @@ namespace Unity.FPS.Gameplay
             Debug.Assert(startWeapons.HasValue());
 
             SetWeaponItems(startWeapons);
+        }
+
+        internal void SetStartNanoWeapons()
+        {
+            Debug.Assert(startNanoWeapons.HasValue());
+
+            SetWeaponItems(startNanoWeapons);
+        }
+
+        public void RemoveAllWeapons()
+        {
+            foreach (var item in _weapon1Ps)
+            {
+                RemoveWeapon(item);
+            }
         }
 
 

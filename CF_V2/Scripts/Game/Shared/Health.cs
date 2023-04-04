@@ -1,19 +1,24 @@
-﻿using UnityEngine;
+﻿using System;
+using System.Collections.Generic;
+using UnityEngine;
 using UnityEngine.Events;
 
 namespace Unity.FPS.Game
 {
     public class Health : MonoBehaviour
     {
+        public float MaxArmor = 100f;
         public float MaxHealth = 100f;
         public float CriticalHealthRatio = 0.3f;
         
-        public UnityAction<float, GameObject> OnDamaged;
-        public UnityAction<float> OnHealed;
-        public UnityAction OnDie;
+        public List<GameObject> damageSources = new List<GameObject>();
+        public UnityAction<float, GameObject> onDamaged;
+        public UnityAction<float> onHealed;
+        public UnityAction onDie;
 
-        public UnityAction<GameObject> OnKilledBy;
+        public UnityAction<GameObject> onKilledBy;
 
+        public float CurrentArmor { get; set; }
         public float CurrentHealth { get; set; }
         public bool IsDead { get; private set; }
         public bool Invincible { get; set; }
@@ -41,6 +46,12 @@ namespace Unity.FPS.Game
 
         void Start()
         {
+            InitHealth();
+        }
+
+        public void InitHealth()
+        {
+            CurrentArmor = MaxArmor;
             CurrentHealth = MaxHealth;
         }
 
@@ -54,31 +65,51 @@ namespace Unity.FPS.Game
             float trueHealAmount = CurrentHealth - healthBefore;
             if (trueHealAmount > 0f)
             {
-                OnHealed?.Invoke(trueHealAmount);
+                onHealed?.Invoke(trueHealAmount);
             }
         }
 
-        public void TakeDamage(float damage, GameObject damageSource)
+        public void TakeDamage(float damage, EDamageType damageType, GameObject damageSource)
         {
             if (!Invincible && CurrentHealth > 0) 
             {
-                float healthBefore = CurrentHealth;
-                CurrentHealth -= damage;
-                CurrentHealth = Mathf.Clamp(CurrentHealth, 0f, MaxHealth);
+                damageSources.Add(damageSource);
 
-                // damage
-                float trueDamageAmount = healthBefore - CurrentHealth;
-                if (trueDamageAmount > 0f)
+                var damagePenatrate = damage - CurrentArmor;
+                if(CurrentArmor > 0)
                 {
-                    OnDamaged?.Invoke(trueDamageAmount, damageSource);
+                    CurrentArmor -= damage;
+                    CurrentArmor = Mathf.Clamp(CurrentArmor,  0f, MaxArmor);
                 }
 
-                // kill
-                var getKilled = HandleDeath();
-                if (getKilled)
+                if(damagePenatrate > 0f)
                 {
-                    OnKilledBy?.Invoke(damageSource);
+                    ReduceHealth(damagePenatrate, damageSource);
                 }
+            }
+        }
+
+        private void ReduceHealth(float damage, GameObject damageSource)
+        {
+            if (damage <= 0)
+                return;
+
+            float healthBefore = CurrentHealth;
+            CurrentHealth -= damage;
+            CurrentHealth = Mathf.Clamp(CurrentHealth, 0f, MaxHealth);
+
+            // damage
+            float trueDamageAmount = healthBefore - CurrentHealth;
+            if (trueDamageAmount > 0f)
+            {
+                onDamaged?.Invoke(trueDamageAmount, damageSource);
+            }
+
+            // kill
+            var getKilled = HandleDeath();
+            if (getKilled)
+            {
+                onKilledBy?.Invoke(damageSource);
             }
         }
 
@@ -90,7 +121,7 @@ namespace Unity.FPS.Game
             CurrentHealth = 0f;
 
             // call OnDamage action
-            OnDamaged?.Invoke(MaxHealth, null);
+            onDamaged?.Invoke(MaxHealth, null);
 
             HandleDeath();
         }
@@ -103,7 +134,7 @@ namespace Unity.FPS.Game
                 && CurrentHealth <= 0f)
             {
                 IsDead = true;
-                OnDie?.Invoke();
+                onDie?.Invoke();
 
                 gotKilled = true;
             }
@@ -111,9 +142,11 @@ namespace Unity.FPS.Game
             return gotKilled;
         }
 
+        // respawn
         public void ResetHealth()
         {
             IsDead = false;
+            CurrentArmor = MaxArmor;
             CurrentHealth = MaxHealth;
         }
 

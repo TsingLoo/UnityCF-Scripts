@@ -4,22 +4,23 @@ using UnityEngine;
 
 namespace Unity.FPS.UI
 {
+    // DisplayNotifyManager
     public class DisplayMessageManager : MonoBehaviour
     {
         public UITable DisplayMessageRect;
-        public NotificationToast MessagePrefab;
+        public Notify MessagePrefab;
 
-        List<(float timestamp, float delay, string message, NotificationToast notification)> m_PendingMessages;
+        List<(float timestamp, float delay, string message, Notify notification)> m_PendingMessages;
 
         void Awake()
         {
             EventManager.AddListener<DisplayMessageEvent>(OnDisplayMessageEvent);
-            m_PendingMessages = new List<(float, float, string, NotificationToast)>();
+            m_PendingMessages = new List<(float, float, string, Notify)>();
         }
 
         void OnDisplayMessageEvent(DisplayMessageEvent evt)
         {
-            NotificationToast notification = Instantiate(MessagePrefab, DisplayMessageRect.transform).GetComponent<NotificationToast>();
+            Notify notification = Instantiate(MessagePrefab, DisplayMessageRect.transform).GetComponent<Notify>();
             m_PendingMessages.Add((Time.time, evt.DelayBeforeDisplay, evt.Message, notification));
         }
 
@@ -38,7 +39,7 @@ namespace Unity.FPS.UI
             m_PendingMessages.RemoveAll(x => x.notification.Initialized);
         }
 
-        void DisplayMessage(NotificationToast notification)
+        void DisplayMessage(Notify notification)
         {
             DisplayMessageRect.UpdateTable(notification.gameObject);
             //StartCoroutine(MessagePrefab.ReturnWithDelay(notification.gameObject, notification.TotalRunTime));

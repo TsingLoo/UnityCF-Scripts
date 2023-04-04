@@ -39,13 +39,6 @@ namespace Unity.FPS.Game
 
         public bool isMapGun { get; private set; }
 
-        public void SetOnCharacter(CharacterModel character)
-        {
-            // todo set outside
-
-        }
-
-
 
         public void SetVisible(bool visible)
         {

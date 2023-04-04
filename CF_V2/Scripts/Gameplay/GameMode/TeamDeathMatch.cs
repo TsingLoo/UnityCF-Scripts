@@ -8,11 +8,15 @@ namespace Unity.FPS.Gameplay
         {
             base.OnPlayerDeath();
 
-            var player = FindObjectOfType<PlayerController>();
-            if (player != null)
+            // todo spawn time
+            DelayAction(3f, () =>
             {
-                player.Respawn(playerTeamStarts[0].transform);
-            }
+                var player = FindObjectOfType<PlayerController>();
+                if (player != null)
+                {
+                    player.Respawn(playerTeamStarts[0].transform);
+                }
+            });
         }
     }
 }

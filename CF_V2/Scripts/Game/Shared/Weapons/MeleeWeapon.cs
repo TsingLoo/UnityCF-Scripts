@@ -177,7 +177,7 @@ namespace Unity.FPS.Game
             Damageable damageable = other.GetComponent<Damageable>();
             if (damageable)
             {
-                damageable.HandleDamage(damage, false, m_Owner);
+                damageable.HandleDamage(damage, EDamageType.Melee, m_Owner);
             }
 
             if (hitParticlePrefab != null)

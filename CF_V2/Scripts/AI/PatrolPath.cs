@@ -37,11 +37,17 @@ namespace Unity.FPS.AI
             // path
             if (!PathNodes.HasValue())
             {
-                var playerTeamStarts = GameFlowManager.Instance.GameMode.playerTeamStarts;
-                var enemyTeamStarts = GameFlowManager.Instance.GameMode.enemyTeamStarts;
+                var playerTeamStarts = GameFlowManager.Ins.BaseGameMode.playerTeamStarts;
+                var enemyTeamStarts = GameFlowManager.Ins.BaseGameMode.enemyTeamStarts;
 
-                PathNodes.Add(playerTeamStarts.FirstOrDefault().transform);
-                PathNodes.Add(enemyTeamStarts.FirstOrDefault().transform);
+                if (playerTeamStarts.HasValue())
+                {
+                    PathNodes.Add(playerTeamStarts.FirstOrDefault().transform);
+                }
+                if(enemyTeamStarts.HasValue())
+                {
+                    PathNodes.Add(enemyTeamStarts.FirstOrDefault().transform);
+                }
             }
 
             foreach (var enemy in EnemiesToAssign)

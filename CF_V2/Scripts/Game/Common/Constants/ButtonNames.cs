@@ -4,8 +4,8 @@
     public class ButtonNames
     {
         // all the constant string used across the game
-        public const string k_AxisNameVertical = "Vertical";
-        public const string k_AxisNameHorizontal = "Horizontal";
+        public const string Vertical = "Vertical";
+        public const string Horizontal = "Horizontal";
         public const string k_MouseAxisNameVertical = "Mouse Y";
         public const string MouseX = "Mouse X";
         public const string k_AxisNameJoystickLookVertical = "Look Y";
@@ -30,8 +30,12 @@
         public const string k_ButtonNameGamepadSwitchWeapon = "Gamepad Switch";
         
         public const string k_ButtonNamePauseMenu = "Pause Menu";
-        public const string k_ButtonNameSubmit = "Submit";
+        public const string Submit = "Submit";
         public const string k_ButtonNameCancel = "Cancel";
+
+        // todo add
+        public const string ArrowDown = nameof(ArrowDown);
+        public const string ArrowUp = nameof(ArrowUp);
 
         /// <summary>
         /// SwitchView, todo rename
@@ -40,5 +44,7 @@
         public const string ShowInventory = nameof(ShowInventory);
 
         public const string ThrowWeapon = nameof(ThrowWeapon);
+
+        public const string SwitchFireMode = nameof(SwitchFireMode);
     }
 }

@@ -2,13 +2,20 @@
 
 public enum EDamageType
 {
-    Rifle,
+    // kill mark type
+    HeadShot,// prior to knife / rifle ... etc
+    Wall, // rifle
 
-    HeadShot,// prior to knife ... etc
-    Knife,
-    Granade,
-    Wall,
+    // damage type
+    Bullet, // rifle
+
+    Melee,
+
+    Grenade,
     Bomb,
 
-    Self,
+    Fall,
+
+    // nano
+    Nano,
 }

@@ -13,6 +13,8 @@ namespace Unity.FPS.Game
         public static BotDeathEvent BotDeathEvent = new BotDeathEvent();
         public static KillMarkEvent KillMarkEvent = new KillMarkEvent();
 
+        public static TurnNanoEvent TurnNanoEvent = new TurnNanoEvent();
+
         public static PickupEvent PickupEvent = new PickupEvent();
         public static AmmoPickupEvent AmmoPickupEvent = new AmmoPickupEvent();
 
@@ -52,10 +54,18 @@ namespace Unity.FPS.Game
 
     public class BotDeathEvent : GameEvent
     {
-        public GameObject Bot;
+        public string PawnName;
+
         public ETeam Team;
+        public GameObject Bot;
+        
         public float RespawnTime;
         public int BotLeftCount;
+    }
+
+    public class TurnNanoEvent: GameEvent
+    {
+
     }
 
     public class PickupEvent : GameEvent

@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using Unity.FPS.Game;
 using UnityEngine;
 using UnityEngine.SceneManagement;
@@ -7,7 +8,7 @@ namespace Unity.FPS.Gameplay
 {
     public class GameFlowManager : MonoBehaviour
     {
-        public static GameFlowManager Instance { get; private set; }
+        public static GameFlowManager Ins { get; private set; }
 
         public LayerMask Camera1PLayer;
         public LayerMask Camera1PWeaponLayer;
@@ -21,7 +22,8 @@ namespace Unity.FPS.Gameplay
         public CanvasGroup EndGameFadeCanvasGroup;
 
         [Header("GameMode")]
-        public GameModeBase GameMode;
+        public EGameMode currentGameMode;
+        public GameModeBase BaseGameMode;
 
         [Header("Win")]
         public string WinSceneName = "WinScene";
@@ -52,7 +54,7 @@ namespace Unity.FPS.Gameplay
 
         void Awake()
         {
-            Instance = this;
+            Ins = this;
 
             EventManager.AddListener<AllObjectivesCompletedEvent>(OnAllObjectivesCompleted);
             EventManager.AddListener<PlayerDeathEvent>(OnPlayerDeath);
@@ -100,9 +102,9 @@ namespace Unity.FPS.Gameplay
 
         void OnPlayerDeath(PlayerDeathEvent evt)
         {
-            if(GameMode != null)
+            if(BaseGameMode != null)
             {
-                GameMode.OnPlayerDeath();
+                BaseGameMode.OnPlayerDeath();
             }
             else
             {
@@ -127,7 +129,7 @@ namespace Unity.FPS.Gameplay
                 var audioSource = gameObject.AddComponent<AudioSource>();
                 audioSource.clip = VictorySound;
                 audioSource.playOnAwake = false;
-                audioSource.outputAudioMixerGroup = AudioUtility.GetAudioGroup(AudioUtility.AudioGroups.HUDVictory);
+                audioSource.outputAudioMixerGroup = AudioUtility.GetAudioGroup(AudioUtility.AudioGroups.Hud);
                 audioSource.PlayScheduled(AudioSettings.dspTime + DelayBeforeWinMessage);
 
                 // create a game message
@@ -155,5 +157,21 @@ namespace Unity.FPS.Gameplay
             EventManager.RemoveListener<AllObjectivesCompletedEvent>(OnAllObjectivesCompleted);
             EventManager.RemoveListener<PlayerDeathEvent>(OnPlayerDeath);
         }
+
+
+        // todo ref
+        public List<string> nameList = new List<string>()
+        { "bot1", "bot2", "test1", "test2", "I am bot", "botA", "botB" };
+
+        public string GetBotName()
+        {
+            var id = UnityEngine.Random.Range(0, nameList.Count);
+            //nameList.RemoveAt(id);
+
+            var name = nameList[id];
+            return name;
+        }
+
+        // end
     }
 }

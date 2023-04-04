@@ -41,7 +41,7 @@ namespace Unity.FPS.Game
             Damageable damageable = collider.GetComponent<Damageable>();
             if (damageable)
             {
-                damageable.HandleDamage(Damage, false, _ownerPawn);
+                damageable.HandleDamage(Damage,  EDamageType.Melee, _ownerPawn);
             }
         }
 

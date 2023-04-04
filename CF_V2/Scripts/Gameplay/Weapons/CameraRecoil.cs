@@ -22,17 +22,17 @@ namespace Unity.FPS.Gameplay
             _playerController = FindObjectOfType<PlayerController>();
         }
 
-        private void LateUpdate()
+        private void Update()
         {
-            if (_weaponsManager.GetCurrentWeapon().HasRecoil()) 
+            if (_weaponsManager.GetCurrentWeapon() 
+                && _weaponsManager.GetCurrentWeapon().HasRecoil()) 
             {
-                // set rotation
-                // only use y
+                // set rotation, only use y
                 var cameraRecoil = _weaponsManager.accumulatedCameraRecoil//_weaponsManager.spreadThisShot + 
-                    / 5;
+                    / 4f;
                 if (_weaponsManager.IsAiming)
                 {
-                    cameraRecoil /= 2;
+                    cameraRecoil /= 2f;
                 }
 
                 transform.localRotation = Quaternion.Euler(-cameraRecoil.y, cameraRecoil.x, 0f);
@@ -48,5 +48,6 @@ namespace Unity.FPS.Gameplay
         }
 
 
+        //
     }
 }

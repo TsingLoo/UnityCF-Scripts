@@ -10,7 +10,6 @@ namespace Unity.FPS.Gameplay
         Animator _animator;
         protected int weaponLayer = 0;
 
-        Animator _fbxAnimator;
         WeaponController _weapon;
         PawnAnimationController _pawnAnimCon;
 
@@ -55,7 +54,7 @@ namespace Unity.FPS.Gameplay
             // Melee Combo:
             // can be simplify by using click up, will lost combo when not holding trigger
             //if(!_weapon.TriggerHolding)
-            if (GameFlowManager.Instance.ComboTimerOut())
+            if (GameFlowManager.Ins.ComboTimerOut())
             {
                 _clickCount = 0;
             }
@@ -77,13 +76,13 @@ namespace Unity.FPS.Gameplay
             var animators = GetComponentsInChildren<Animator>();
             if (animators.Count() > 1)
             {
-                _fbxAnimator = animators[1];
-                _animator.avatar = _fbxAnimator.avatar;
+                var fbxAnimator = animators[1];
+                _animator.avatar = fbxAnimator.avatar;
 
                 // has fps weapon
                 if (_weapon.HasFPSWeapon())
                 {
-                    Debug.Assert(_fbxAnimator.avatar != null);
+                    Debug.Assert(fbxAnimator.avatar != null);
                 }
             }
 
@@ -212,7 +211,7 @@ namespace Unity.FPS.Gameplay
         // todo crossFade
         private void TriggerCombo()
         {
-            GameFlowManager.Instance.ComboTimer = _weapon.WeaponData.FireGap
+            GameFlowManager.Ins.ComboTimer = _weapon.WeaponData.FireGap
                 + ClickResetTime;
 
             var useFullBodyCombo = false;
@@ -367,6 +366,16 @@ namespace Unity.FPS.Gameplay
         public override void PlayOneShot(AudioClip audioClip) 
         {
             _audioSource.PlayOneShot(audioClip);
+        }
+
+        /// <summary>
+        /// for bot weapons
+        /// </summary>
+        public void SetupAudio3D()
+        {
+            _audioSource.spatialBlend = 0.5f;
+
+            _audioSource.maxDistance = 10f;
         }
         #endregion
         // End

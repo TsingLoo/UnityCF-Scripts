@@ -43,7 +43,7 @@ namespace Unity.FPS.AI
         {
             m_Health = GetComponent<Health>();
             DebugUtility.HandleErrorIfNullGetComponent<Health, EnemyTurret>(m_Health, this, gameObject);
-            m_Health.OnDamaged += OnDamaged;
+            m_Health.onDamaged += OnDamaged;
 
             m_EnemyController = GetComponent<BotController>();
             DebugUtility.HandleErrorIfNullGetComponent<BotController, EnemyTurret>(m_EnemyController, this,
@@ -144,7 +144,7 @@ namespace Unity.FPS.AI
 
             if (OnDetectSfx)
             {
-                AudioUtility.CreateSFX(OnDetectSfx, transform.position, AudioUtility.AudioGroups.EnemyDetection, 1f);
+                AudioUtility.CreateSFX(OnDetectSfx, transform.position, AudioUtility.AudioGroups.Bot, 1f);
             }
 
             Animator.SetBool(k_AnimIsActiveParameter, true);

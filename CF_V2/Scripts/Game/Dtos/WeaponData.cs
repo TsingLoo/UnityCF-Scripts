@@ -12,6 +12,7 @@ namespace Unity.FPS.Game
         public string WeaponAssetName { get; set; }
 
         public EWeaponType WeaponType { get; set; }
+        public EDamageType DamageType { get; set; }
         public EWeaponBagPosition WeaponBagPos { get; set; }
         public EWeaponFireMode WeaponFireMode { get; set; }
         public EWeaponAnimType WeaponAnimType { get; set; }
@@ -33,6 +34,8 @@ namespace Unity.FPS.Game
         public float MeleeRangeFire { get; set; }
         public float MeleeRangeHeavy { get; set; }
         public bool HasHeavy { get; set; }
+
+        public float WeaponRange { get; set; }
 
         public bool HasAim { get; set; }
 

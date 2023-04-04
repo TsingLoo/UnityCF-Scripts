@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections;
+using System.Drawing;
 using UnityEngine;
 
 namespace Unity.FPS.Game
@@ -33,5 +34,18 @@ namespace Unity.FPS.Game
         }
         #endregion
 
+        public void PlaySoundMix(AudioClip clip,
+            AudioUtility.AudioGroups audioGroup,
+            float spatialBlend = 0f) // 2D / 3D
+        {
+            AudioUtility.CreateSFX(clip,
+                transform.position,
+                audioGroup,
+                spatialBlend,
+                1f,
+                1f);
+        }
+
+        //
     }
 }

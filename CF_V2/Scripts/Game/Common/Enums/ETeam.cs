@@ -19,5 +19,7 @@ namespace Unity.FPS.Game
         [Description("GR")]
         CT = 2,
 
+        Human = 3,
+        Nano = 4,
     }
 }

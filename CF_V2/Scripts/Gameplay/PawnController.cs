@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Collections;
 using System.Linq;
 using Unity.FPS.Game;
 using Unity.FPS.Inventory;
@@ -11,7 +10,13 @@ namespace Unity.FPS.Gameplay
     [RequireComponent(typeof(AudioSource))]
     public class PawnController : BaseBehaviour
     {
+
+        #region Parameters
         public string PawnName;
+
+        // todo ref
+        public Transform HumanModelPos;
+        public Transform NanoModelPos;
 
         public PawnInventory PawnInventory;
         public PawnEquipment PawnEquipment;
@@ -129,7 +134,8 @@ namespace Unity.FPS.Gameplay
         protected Actor m_Actor;
 
 
-        protected Health m_Health;
+        protected Health _health;
+        protected NanoHealth _nanoHealth;
         protected float _bodyHeight;
         protected Vector3 _bodyCenter;
         // slowly change to this value
@@ -137,7 +143,7 @@ namespace Unity.FPS.Gameplay
 
         public CharacterModel characterModel;
 
-        public PawnAnimationController AnimController { get; protected set; }
+        public PawnAnimationController animController { get; protected set; }
 
         // Player status
         public Vector3 CharacterVelocity { get; set; }
@@ -149,9 +155,14 @@ namespace Unity.FPS.Gameplay
         public bool IsSprinting { get; set; }
 
         public bool IsCrouching { get; set; }
-        
+
         public bool IsGrounded { get; set; }
 
+        #endregion
+
+        #region Actions
+        public UnityAction onTurnNano;
+        #endregion
 
 
         void Awake()
@@ -169,14 +180,8 @@ namespace Unity.FPS.Gameplay
 
         protected virtual void Init()
         {
-            #region Character
-            AnimController = GetComponentInChildren<PawnAnimationController>();
-            AnimController.SetOwner(gameObject);
-
             _charactersPosition = this.transform.DeepFind("Characters");
-            characterModel = GetComponentInChildren<CharacterModel>();
-
-            #endregion
+            InitCharacterModel();
 
             _weaponsManager = GetComponent<PawnWeaponsManager>();
             Debug.Assert(_weaponsManager != null);
@@ -184,11 +189,21 @@ namespace Unity.FPS.Gameplay
             _weaponsManager.Weapon1PLayer = GetWeapon1PLayer();
             _weaponsManager.Weapon3PLayer = GetWeapon3PLayer();
 
-            m_Health = GetComponent<Health>();
-            DebugUtility.HandleErrorIfNullGetComponent<Health, PawnController>(m_Health, this, gameObject);
+            _health = GetComponent<Health>();
+            DebugUtility.HandleErrorIfNullGetComponent<Health, PawnController>(_health, this, gameObject);
+            _nanoHealth = GetComponent<NanoHealth>();
+            Debug.Assert(_nanoHealth  != null);
 
             m_Actor = GetComponent<Actor>();
             DebugUtility.HandleErrorIfNullGetComponent<Actor, PlayerController>(m_Actor, this, gameObject);
+        }
+
+        private void InitCharacterModel()
+        {
+            characterModel = GetComponentInChildren<CharacterModel>();
+
+            animController = GetComponentInChildren<PawnAnimationController>();
+            animController.SetOwner(gameObject);
         }
 
         // todo ref, call from anim?
@@ -206,7 +221,7 @@ namespace Unity.FPS.Gameplay
                     >= 1f / chosenFootstepSfxFrequency)
                 {
                     m_FootstepDistanceCounter = 0f;
-                    AnimController.PlayOneShot(FootstepSfx);
+                    animController.PlayOneShot(FootstepSfx);
                 }
 
                 // keep track of distance traveled for footsteps sound
@@ -239,10 +254,10 @@ namespace Unity.FPS.Gameplay
 
         protected virtual void UpdateAnimator()
         {
-            AnimController.IsRunning = IsRunning;
-            AnimController.IsWalking = IsSprinting;
-            AnimController.IsCrouching = IsCrouching;
-            AnimController.IsFalling = !IsGrounded;
+            animController.IsRunning = IsRunning;
+            animController.IsWalking = IsSprinting;
+            animController.IsCrouching = IsCrouching;
+            animController.IsFalling = !IsGrounded;
         }
 
         protected virtual void UpdateRootMotion()
@@ -252,6 +267,7 @@ namespace Unity.FPS.Gameplay
 
         protected virtual void SetInventory()
         {
+            // for human
             if (PawnInventory)
             {
                 PawnInventory.useItemAction = OnInventoryUseItem;
@@ -263,7 +279,8 @@ namespace Unity.FPS.Gameplay
             {
                 _weaponsManager.SetWeaponItems(PawnEquipment.Items);
             }
-            else // bot
+            // bot
+            else if(m_Actor.Team != ETeam.Nano) // todo ref
             {
                 _weaponsManager.SetStartWeapons();
             }
@@ -282,9 +299,9 @@ namespace Unity.FPS.Gameplay
                 _weaponsManager.ChangeToWeapon(-1, true);
 
                 // anim
-                AnimController.PlayFullBodyAnim(BodyAnims.Death1);
+                animController.PlayFullBodyAnim(BodyAnims.Death1);
                 // sound
-                AnimController.PlayOneShot(characterModel.voiceAsset.die);
+                animController.PlayOneShot(characterModel.voiceAsset.die);
             }
         }
 
@@ -297,10 +314,12 @@ namespace Unity.FPS.Gameplay
             _moveCheckLayer = LayerHelper.GetAllLayer()
                 .RemoveLayer(EditorLayer.Player.GetIntValue());
 
+            _health.onDamaged += OnDamaged;
+            _health.onKilledBy += OnKilledBy;
+            _health.onDie += OnDie;
 
-            m_Health.OnDamaged += OnDamaged;
-            m_Health.OnKilledBy += OnKilledBy;
-            m_Health.OnDie += OnDie;
+            _nanoHealth.onKilledBy += OnKilledBy;
+            _nanoHealth.onDie += TurnNano;
 
             UpdateBodyHeight(true);
         }
@@ -344,7 +363,7 @@ namespace Unity.FPS.Gameplay
         {
             if (damageSource && damageSource != this)
             {
-                AnimController.PlayUpperBodyAnim(BodyAnims.Hit_Forward);
+                animController.PlayUpperBodyAnim(BodyAnims.Hit_Forward);
             }
         }
 
@@ -353,7 +372,7 @@ namespace Unity.FPS.Gameplay
             // check for Y kill
             if (!IsDead && transform.position.y < KillHeight)
             {
-                m_Health.Kill();
+                _health.Kill();
             }
 
             HasJumpedThisFrame = false;
@@ -458,7 +477,7 @@ namespace Unity.FPS.Gameplay
             throw new NotImplementedException();
         }
 
-        // todo ref, update model position only
+        // todo ref, change base animation
         // use other way to check can stand
         // camera height in player only
         protected virtual void UpdateBodyHeight(bool force)
@@ -468,8 +487,8 @@ namespace Unity.FPS.Gameplay
                 : CameraHeightStanding;
 
             var newModelPosition = IsCrouching ?
-                AnimController.ModelPositionCrouch
-                : AnimController.ModelPositionStand;
+                animController.ModelPositionCrouch
+                : animController.ModelPositionStand;
             // Update height instantly
             if (force)
             {
@@ -503,7 +522,7 @@ namespace Unity.FPS.Gameplay
                 _charactersPosition.transform.localPosition = Vector3.Lerp
                     (_charactersPosition.transform.localPosition,
                     new Vector3(0, newModelPosition, 0),
-                    Time.deltaTime / AnimController.CrouchTransitionTime);
+                    Time.deltaTime / animController.CrouchTransitionTime);
             }
         }
 
@@ -517,6 +536,40 @@ namespace Unity.FPS.Gameplay
 
             var clip = Resources.Load<AudioClip>($"Sound/PLAYER/{clipName}");
             return clip;
+        }
+
+        public void TurnNano()
+        {
+            onTurnNano?.Invoke();
+
+            // todo ref
+            #region change character
+            // Current character:
+            // weapon
+            _weaponsManager.ChangeToWeapon(-1, true);
+            _weaponsManager.RemoveAllWeapons();
+            // player
+            HumanModelPos.Hide();
+
+            // New character:
+            // nano
+            NanoModelPos.Show();
+            InitCharacterModel(); // character changed
+            // weapon
+            _weaponsManager.SetStartNanoWeapons();
+
+            // todo sound
+
+            // health
+            _health.MaxHealth = 500f; // todo change
+            _health.InitHealth();
+            #endregion
+
+            // change team
+            m_Actor.ChangeTeam(ETeam.Nano);
+
+            TurnNanoEvent turnNanoEvent = new TurnNanoEvent();
+            EventManager.Broadcast(turnNanoEvent);
         }
 
         // End

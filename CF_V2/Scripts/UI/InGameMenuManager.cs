@@ -31,7 +31,7 @@ namespace Unity.FPS.UI
         public GameObject ControlImage;
 
         PlayerController _playerCon;
-        PlayerInputHandler _inputHandler;
+        PlayerInputManager _inputHandler;
         Health m_PlayerHealth;
         FramerateCounter m_FramerateCounter;
 
@@ -62,10 +62,10 @@ namespace Unity.FPS.UI
 
         private void Init()
         {
-            _playerCon = FindAnyObjectByType<PlayerController>();
+            _playerCon = FindObjectOfType<PlayerController>();
 
-            _inputHandler = FindObjectOfType<PlayerInputHandler>();
-            DebugUtility.HandleErrorIfNullFindObject<PlayerInputHandler, InGameMenuManager>(_inputHandler,
+            _inputHandler = FindObjectOfType<PlayerInputManager>();
+            DebugUtility.HandleErrorIfNullFindObject<PlayerInputManager, InGameMenuManager>(_inputHandler,
                 this);
 
             m_PlayerHealth = _inputHandler.GetComponent<Health>();
@@ -117,7 +117,7 @@ namespace Unity.FPS.UI
             }
 
             // todo ?
-            if (Input.GetAxisRaw(ButtonNames.k_AxisNameVertical) != 0)
+            if (Input.GetAxisRaw(ButtonNames.Vertical) != 0)
             {
                 if (EventSystem.current.currentSelectedGameObject == null)
                 {

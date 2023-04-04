@@ -3,7 +3,7 @@ using UnityEngine;
 
 namespace Unity.FPS.Game
 {
-    public abstract class BaseAnimationController: MonoBehaviour
+    public abstract class BaseAnimationController: BaseBehaviour
     {
         protected WeaponData _weaponData;
 

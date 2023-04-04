@@ -18,11 +18,12 @@ namespace Unity.FPS.UI
 
         void LateUpdate()
         {
+            // select buttons by arraw key
             if (EventSystem.current.currentSelectedGameObject == null)
             {
-                if (Input.GetButtonDown(ButtonNames.k_ButtonNameSubmit)
-                    || Input.GetAxisRaw(ButtonNames.k_AxisNameHorizontal) != 0
-                    || Input.GetAxisRaw(ButtonNames.k_AxisNameVertical) != 0)
+                if (Input.GetButtonDown(ButtonNames.Submit)
+                    || Input.GetAxisRaw(ButtonNames.Horizontal) != 0
+                    || Input.GetAxisRaw(ButtonNames.Vertical) != 0)
                 {
                     EventSystem.current.SetSelectedGameObject(DefaultSelection.gameObject);
                 }

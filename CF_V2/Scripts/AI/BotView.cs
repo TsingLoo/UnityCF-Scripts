@@ -1,11 +1,15 @@
 ﻿using System.Linq;
 using Unity.FPS.Game;
+using Unity.FPS.Gameplay;
 using UnityEditor;
 using UnityEngine;
 using UnityEngine.Events;
 
 namespace Unity.FPS.AI
 {
+    /// <summary>
+    /// Bot View, find enemy
+    /// </summary>
     public class BotView : MonoBehaviour
     {
         [Tooltip("The point representing the source of target-detection raycasts for the enemy AI")]
@@ -16,7 +20,7 @@ namespace Unity.FPS.AI
         public bool HasBackView = false;
         public float ViewRangeBack = 5f;
 
-        public float AttackRange = 10f;
+        float _defaultAttackRange = 10f;
 
         public float KnownTargetTimeout = 4f;
 
@@ -25,7 +29,6 @@ namespace Unity.FPS.AI
         [Header("Debug")]
         public Color ViewRangeColor = Color.blue;
         public Color AttackRangeColor = Color.red;
-
 
         public UnityAction onDetectedTarget;
         public UnityAction onLostTarget;
@@ -37,6 +40,7 @@ namespace Unity.FPS.AI
 
         protected float TimeLastSeenTarget = Mathf.NegativeInfinity;
 
+        PawnWeaponsManager _weaponsManager;
         ActorsManager m_ActorsManager;
 
         const string k_AnimAttackParameter = "Attack";
@@ -46,6 +50,8 @@ namespace Unity.FPS.AI
         {
             m_ActorsManager = FindObjectOfType<ActorsManager>();
             DebugUtility.HandleErrorIfNullFindObject<ActorsManager, BotView>(m_ActorsManager, this);
+
+            _weaponsManager = GetComponent<PawnWeaponsManager>();
         }
 
         public virtual void HandleTargetDetection(Actor actor, Collider[] selfColliders)
@@ -65,7 +71,7 @@ namespace Unity.FPS.AI
             float closestSqrDist = Mathf.Infinity;
             foreach (Actor otherActor in m_ActorsManager.Actors)
             {
-                if (otherActor.Team != actor.Team)
+                if (IsEnemy(actor, otherActor))
                 {
                     // view angle
                     Vector3 dirToOther = otherActor.transform.position
@@ -123,7 +129,7 @@ namespace Unity.FPS.AI
 
             IsTargetInAttackRange = KnownTarget != null
                 && Vector3.Distance(transform.position, KnownTarget.transform.position)
-                    <= AttackRange;
+                    <= GetAttackRange();
 
             // detect events
             if (!HadKnownTarget &&
@@ -140,6 +146,26 @@ namespace Unity.FPS.AI
 
             HadKnownTarget = KnownTarget != null;
         }
+
+        private bool IsEnemy(Actor actor, Actor otherActor)
+        {
+            var gameMode = GameFlowManager.Ins.currentGameMode;
+            switch (gameMode)
+            {
+                case EGameMode.TD:
+                case EGameMode.Bomb:
+                case EGameMode.Nano:
+                    {
+                        return actor.Team != otherActor.Team;
+                    }
+
+                case EGameMode.FreeForAll:
+                    return true;
+            }
+
+            return false;
+        }
+
 
         public virtual void OnLostTarget()
         {
@@ -176,10 +202,25 @@ namespace Unity.FPS.AI
 
             // Attack range
             Gizmos.color = AttackRangeColor;
-            Gizmos.DrawWireSphere(transform.position, AttackRange);
+            Gizmos.DrawWireSphere(transform.position, _defaultAttackRange);
 
         }
 
+        public float GetDefaultAttackRange()
+        {
+            return _defaultAttackRange;
+        }
+
+        public float GetAttackRange()
+        {
+            var weaponRange = _defaultAttackRange;
+            if(_weaponsManager && _weaponsManager.GetCurrentWeapon() != null)
+            {
+                weaponRange = _weaponsManager.GetCurrentWeapon().WeaponData.WeaponRange;
+            }
+
+            return Mathf.Min(weaponRange, _defaultAttackRange);
+        }
 
         #region Draw view
         private void DrawViewAngle()

@@ -83,7 +83,7 @@ namespace Unity.FPS.Gameplay
             if (PickupSound)
             {
                 AudioUtility.CreateSFX(PickupSound, 
-                    transform.position, AudioUtility.AudioGroups.Pickup, 
+                    transform.position, AudioUtility.AudioGroups.Hud, 
                     0f, 1f, PickupSoundVolume);
             }
 

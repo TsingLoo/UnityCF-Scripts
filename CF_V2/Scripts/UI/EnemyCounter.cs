@@ -20,7 +20,8 @@ namespace Unity.FPS.UI
 
         void Update()
         {
-            EnemiesText.text = m_EnemyManager.BotLeftCount + "/" + m_EnemyManager.TotalBots;
+            EnemiesText.text = m_EnemyManager.BotLeftCount 
+                + "/" + m_EnemyManager.TotalBots;
         }
     }
 }

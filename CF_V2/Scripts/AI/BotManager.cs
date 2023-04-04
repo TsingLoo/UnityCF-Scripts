@@ -28,6 +28,9 @@ namespace Unity.FPS.AI
 
             // send event
             BotDeathEvent evt = Events.BotDeathEvent;
+
+            evt.PawnName = botKilled.PawnName;
+
             evt.Bot = botKilled.gameObject;
             evt.RespawnTime = botKilled.DeathDuration;
 

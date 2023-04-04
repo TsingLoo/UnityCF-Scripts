@@ -1,10 +1,11 @@
 ﻿using System;
+using System.Collections;
 using Unity.FPS.Game;
 using UnityEngine;
 
 namespace Unity.FPS.Gameplay
 {
-    [RequireComponent(typeof(PlayerInputHandler))]
+    [RequireComponent(typeof(PlayerInputManager))]
     public class PlayerWeaponsManager : PawnWeaponsManager
     {
         protected PlayerController _playerController;
@@ -13,6 +14,7 @@ namespace Unity.FPS.Gameplay
         public Camera Camera1P_Weapon;
 
         public AudioClip AimingSound;
+        public AudioClip FireSwitchSound;
 
         public Transform DefaultWeaponPosition;
 
@@ -57,7 +59,7 @@ namespace Unity.FPS.Gameplay
         public bool IsAiming { get; private set; }
         public bool IsPointingAtEnemy { get; private set; }
 
-        PlayerInputHandler m_InputHandler;
+        PlayerInputManager m_InputHandler;
         Vector3 m_LastCharacterPosition;
 
         float m_WeaponBobFactor;
@@ -70,7 +72,7 @@ namespace Unity.FPS.Gameplay
         /// Crosshair
         /// </summary>
         public float accumulatedCrosshairRecoil;
-        private int shotsFired; // todo ref?, not used
+        //private int shotsFired; // todo ref?, not used
 
         // bullet position in angle (before devided by 180)
         public Vector2 accumulatedBulletRecoil; // only y is used
@@ -84,8 +86,8 @@ namespace Unity.FPS.Gameplay
         {
             base.Start();
 
-            m_InputHandler = GetComponent<PlayerInputHandler>();
-            DebugUtility.HandleErrorIfNullGetComponent<PlayerInputHandler, PlayerWeaponsManager>(m_InputHandler, this,
+            m_InputHandler = GetComponent<PlayerInputManager>();
+            DebugUtility.HandleErrorIfNullGetComponent<PlayerInputManager, PlayerWeaponsManager>(m_InputHandler, this,
                 gameObject);
 
             _playerController = GetComponent<PlayerController>();
@@ -99,6 +101,7 @@ namespace Unity.FPS.Gameplay
 
         }
 
+        int _burstCount = 0;
         protected override void Update()
         {
             base.Update();
@@ -131,22 +134,32 @@ namespace Unity.FPS.Gameplay
                     currentWeapon.TryHeavyAttack();
                 }
 
+                // switch fire mode
+                if(currentWeapon.FireModes.Count > 1
+                    && m_InputHandler.GetInputDown(ButtonNames.SwitchFireMode))
+                {
+                    SwitchFireMode();
+                }
+
+                #region HandleWeaponFire
                 // fire
                 bool hasFired = currentWeapon.HandleShootInputs(
                     m_InputHandler.GetFireInputDown(),
                     m_InputHandler.GetFireInputHeld(),
                     m_InputHandler.GetFireInputReleased());
 
-                // weapon status
-                currentWeapon.TriggerHolding = m_InputHandler.GetFireInputHeld();
-
                 // Handle accumulating recoil
                 if (hasFired)
                 {
-                    shotsFired++;
+                    //shotsFired++;
 
                     AddRecoil(currentWeapon);
                 }
+                #endregion
+
+                // weapon status
+                currentWeapon.TriggerHolding = m_InputHandler.GetFireInputHeld();
+
             }
 
             // weapon switch / changeWeapon
@@ -195,7 +208,12 @@ namespace Unity.FPS.Gameplay
             UpdateBulletRecoil();
         }
 
-
+        private void SwitchFireMode()
+        {
+            GetCurrentWeapon().SwitchFireMode();
+            // todo ref
+            GetCurrentWeapon().animController.PlayOneShot(FireSwitchSound);
+        }
 
         private void SwitchWeapon()
         {
@@ -249,7 +267,7 @@ namespace Unity.FPS.Gameplay
         private void SwitchAiming()
         {
             IsAiming = !IsAiming;
-            GetCurrentWeapon().AnimController.PlayOneShot(AimingSound);
+            GetCurrentWeapon().animController.PlayOneShot(AimingSound);
         }
 
         public override void StopAiming()
@@ -350,9 +368,9 @@ namespace Unity.FPS.Gameplay
 
             // bullets:
             // spread angle
-            if(bulletSpreadAngleApply <= currentWeapon.bulletSpreadAngle)
+            if (bulletSpreadAngleApply <= currentWeapon.bulletSpreadAngle)
             {
-                bulletSpreadAngleApply += currentWeapon.bulletSpreadAngle 
+                bulletSpreadAngleApply += currentWeapon.bulletSpreadAngle
                     / currentWeapon.bulletSpreadAddBullets;
             }
 
@@ -373,9 +391,9 @@ namespace Unity.FPS.Gameplay
             }
 
             // crosshair recoil decrease
-            accumulatedCrosshairRecoil -= Time.deltaTime 
+            accumulatedCrosshairRecoil -= Time.deltaTime
                 * GetCurrentWeapon().crosshairRecoverSpeed;
-            accumulatedCrosshairRecoil = Mathf.Clamp(accumulatedCrosshairRecoil, 
+            accumulatedCrosshairRecoil = Mathf.Clamp(accumulatedCrosshairRecoil,
                 0,
                 GetCurrentWeapon().crosshairRecoilMax);
 
@@ -390,8 +408,7 @@ namespace Unity.FPS.Gameplay
             // reset when not firing
             if (m_InputHandler.GetFireInputReleased())
             {
-
-                DelayAction(0.5f, () => { shotsFired = 0; });
+                //DelayAction(0.5f, () => { shotsFired = 0; });
             }
             else // firing
             {
@@ -459,21 +476,21 @@ namespace Unity.FPS.Gameplay
                 m_WeaponRecoilLocalPosition = Vector3.Lerp(m_WeaponRecoilLocalPosition, Vector3.zero,
                     RecoilRestitutionSharpness * Time.deltaTime);
                 _accumulatedWeaponRecoil = m_WeaponRecoilLocalPosition;
-                shotsFired = 0;
+                //shotsFired = 0;
             }
         }
         #endregion
 
         public void SetCameraLayer(LayerMask camera1PWeaponLayer)
         {
-            Camera1P_Weapon.cullingMask = GameFlowManager.Instance
+            Camera1P_Weapon.cullingMask = GameFlowManager.Ins
                 .Camera1PWeaponLayer;
         }
 
-        public int GetShotsFired()
-        {
-            return shotsFired;
-        }
+        //public int GetShotsFired()
+        //{
+        //    return shotsFired;
+        //}
 
 
         // End

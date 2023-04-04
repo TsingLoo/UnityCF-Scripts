@@ -1,8 +1,6 @@
 ﻿using System.Collections.Generic;
-using System.Linq;
 using Unity.FPS.Game;
 using Unity.FPS.Gameplay;
-using UnityEditor;
 using UnityEngine;
 using UnityEngine.AI;
 using UnityEngine.Events;
@@ -111,10 +109,9 @@ namespace Unity.FPS.AI
         {
             base.Init();
 
-            // todo 
-            PawnName = GUID.Generate().ToString();
-
             NavMeshAgent = GetComponent<NavMeshAgent>();
+            Debug.Assert(NavMeshAgent != null);
+
             m_SelfColliders = GetComponentsInChildren<Collider>();
 
             m_ActorsManager = FindObjectOfType<ActorsManager>();
@@ -129,8 +126,8 @@ namespace Unity.FPS.AI
             base.Start();
 
             // Subscribe to damage & death actions
-            m_Health.OnDie += OnDie;
-            m_Health.OnDamaged += OnDamaged;
+            _health.onDie += OnDie;
+            _health.onDamaged += OnDamaged;
 
             _botManager.RegisterBot(this);
 
@@ -176,7 +173,7 @@ namespace Unity.FPS.AI
 
             m_BodyFlashMaterialPropertyBlock = new MaterialPropertyBlock();
 
-            // Eye Color
+            PawnName = GameFlowManager.Ins.GetBotName();
         }
 
         protected override void Update()
@@ -381,6 +378,7 @@ namespace Unity.FPS.AI
             Gizmos.DrawWireSphere(transform.position, PathReachingRadius);
         }
 
+        // tryAttackTarget
         public bool TryAtack(Vector3 enemyPosition)
         {
             if (m_GameFlowManager.GameIsEnding)

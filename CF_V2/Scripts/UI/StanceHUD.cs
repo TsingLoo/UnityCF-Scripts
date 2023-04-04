@@ -5,6 +5,7 @@ using UnityEngine.UI;
 
 namespace Unity.FPS.UI
 {
+    // stand / crouch
     public class StanceHUD : MonoBehaviour
     {
         [Tooltip("Image component for the stance sprites")]

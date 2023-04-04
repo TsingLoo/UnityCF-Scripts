@@ -50,8 +50,8 @@ namespace Unity.FPS.UI
             m_GameFlowManager = FindObjectOfType<GameFlowManager>();
             DebugUtility.HandleErrorIfNullFindObject<GameFlowManager, FeedbackFlashHUD>(m_GameFlowManager, this);
 
-            m_PlayerHealth.OnDamaged += OnTakeDamage;
-            m_PlayerHealth.OnHealed += OnHealed;
+            m_PlayerHealth.onDamaged += OnTakeDamage;
+            m_PlayerHealth.onHealed += OnHealed;
         }
 
         void Update()

@@ -54,7 +54,7 @@ namespace Unity.FPS.Game
                 // todo no curve
                 uniqueDamageable.HandleDamage
                     (damage * DamageRatioOverDistance.Evaluate(distance / AreaOfEffectDistance), 
-                    true, 
+                     EDamageType.Bomb, // todo get from weapon
                     owner);
             }
         }

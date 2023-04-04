@@ -28,6 +28,8 @@ namespace Unity.FPS.UI
         public TextMeshProUGUI AmmoContent;
         public TextMeshProUGUI AmmoCarry;
 
+        // todo fire mode icon
+
         [Header("Selection")]
         [Range(0, 1)]
         [Tooltip("Opacity when weapon not selected")]
@@ -43,7 +45,14 @@ namespace Unity.FPS.UI
         void Awake()
         {
             EventManager.AddListener<AmmoPickupEvent>(OnAmmoPickup);
+            // todo fire mode icon
         }
+
+        void Destroy()
+        {
+            EventManager.RemoveListener<AmmoPickupEvent>(OnAmmoPickup);
+        }
+
 
         void OnAmmoPickup(AmmoPickupEvent evt)
         {
@@ -169,9 +178,5 @@ namespace Unity.FPS.UI
             }
         }
 
-        void Destroy()
-        {
-            EventManager.RemoveListener<AmmoPickupEvent>(OnAmmoPickup);
-        }
     }
 }

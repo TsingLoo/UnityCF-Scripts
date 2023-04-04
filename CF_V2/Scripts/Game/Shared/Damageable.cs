@@ -11,6 +11,7 @@ namespace Unity.FPS.Game
         public float SensibilityToSelfdamage = 0.5f;
 
         public Health Health { get; private set; }
+        public NanoHealth NanoHealth { get; private set; }
 
         void Awake()
         {
@@ -20,30 +21,42 @@ namespace Unity.FPS.Game
             {
                 Health = GetComponentInParent<Health>();
             }
+            
+            NanoHealth = GetComponent<NanoHealth>();
+            if (NanoHealth == null)
+            {
+                NanoHealth= GetComponentInParent<NanoHealth>();
+            }
         }
 
-        // todo damage type
-        public void HandleDamage(float damage, bool isExplosionDamage, GameObject damageSource)
+        public void HandleDamage(float damage, EDamageType damageType, GameObject damageSource)
         {
-            if (Health && Health.IsAlive())
+            if(damageType == EDamageType.Nano
+                && NanoHealth && NanoHealth.IsAlive())
+            {
+                NanoHealth.TakeDamage(damage, damageType, damageSource);
+            }
+            else if (Health && Health.IsAlive())
             {
                 var totalDamage = damage;
 
                 // skip the crit multiplier if it's from an explosion
-                if (!isExplosionDamage)
+                if (damageType != EDamageType.Bomb)
                 {
                     totalDamage *= DamageMultiplier;
                 }
 
-                // potentially reduce damages if inflicted by self
+                // self damage
                 if (Health.gameObject == damageSource)
                 {
                     totalDamage *= SensibilityToSelfdamage;
                 }
 
-                // apply the damages
-                Health.TakeDamage(totalDamage, damageSource);
+                // apply damage
+                Health.TakeDamage(totalDamage, damageType, damageSource);
             }
         }
+
+        //
     }
 }

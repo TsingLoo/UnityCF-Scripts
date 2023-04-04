@@ -1,7 +1,6 @@
 using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
-using static UnityEditor.Experimental.GraphView.GraphView;
 
 namespace Unity.FPS.Game
 {
@@ -48,7 +47,7 @@ namespace Unity.FPS.Game
         // todo BasePawnController
         public GameObject Owner { get; set; }
         List<AnimatorOverrideController> _animOverrideCons;
-        [HideInInspector]
+        [SerializeField] 
         protected AnimatorOverrideController _animOverrideCon;
 
         public float XInput { get; set; }
@@ -96,8 +95,11 @@ namespace Unity.FPS.Game
             // override called in draw: ChangeAnim3P
 
             // load body anims
+            var sex = _characterModel.sex.GetCode();
             var bodyAnims = Resources.LoadAll<AnimationClip>
-                ($"Animations/Woman");
+                ($"Animations/{sex}");
+            Debug.Assert(bodyAnims.HasValue());
+
             _pawnAnims.AddRange(bodyAnims);
 
 
@@ -134,19 +136,23 @@ namespace Unity.FPS.Game
         {
             _weaponData = weaponData;
 
-            // override by weapon
-            _animOverrideCon = _animOverrideCons.FirstOrDefault
-                (x => x.name.EndsWith(_characterModel.sex.GetCode() 
-                    + "_" + weaponData.WeaponAnimType.GetCode()));
-            Debug.Assert(_animOverrideCon != null);
-
-            _animator.runtimeAnimatorController = _animOverrideCon;
-
+            ChangeAnimController(weaponData.WeaponAnimType);
 
             InitWeapon3P();
 
             // set speed by weapon
             ChangeAnimSpeed3P(weaponData);
+        }
+
+        private void ChangeAnimController(EWeaponAnimType weaponAnimType = EWeaponAnimType.Knife)
+        {
+            // override by weapon
+            _animOverrideCon = _animOverrideCons.FirstOrDefault
+                (x => x.name.EndsWith(_characterModel.sex.GetCode()
+                    + "_" + weaponAnimType.GetCode()));
+            Debug.Assert(_animOverrideCon != null);
+
+            _animator.runtimeAnimatorController = _animOverrideCon;
         }
 
         /// <summary>
@@ -325,45 +331,6 @@ namespace Unity.FPS.Game
             _animator.SetTrigger("Roll");
         }
 
-        /// <summary>
-        /// Dummy_Idle
-        /// </summary>
-        /// <param name="Idle">anim affix</param>
-        public void PlayFullBodyAnim(string animAffix)
-        {
-            // replace Dummy_BodyAnim
-            var dummyState = Join(AnimNames.Dummy, AnimNames.BodyAnim);
-
-            PlayReplacedAnim(animAffix, dummyState, _fullBodyLayer);
-        }
-
-        public void PlayUpperBodyAnim(string animAffix)
-        {
-            // replace Dummy_BodyAnim
-            var dummyState = Join(AnimNames.Dummy, AnimNames.BodyAnim);
-
-            PlayReplacedAnim(animAffix, dummyState, _weaponLayer);
-        }
-
-        protected void PlayReplacedAnim(string animAffix,
-            string dummyState,
-            int layer)
-        {
-            var replacedAnim = _pawnAnims
-                    .Where(it => it.name.EndsWith(animAffix))
-                    .FirstOrDefault();
-
-            if (replacedAnim != null)
-            {
-                _animOverrideCon[dummyState]
-                    = replacedAnim;
-            }
-
-            // play dummyState
-            _animator.Play(dummyState, layer);
-        }
-
-
         //internal void TriggerHeavy(bool useFullBodyCombo = false)
         //{
         //    PlayWeaponAnimState(Join(AnimNames.Dummy, AnimNames.Heavy),
@@ -387,5 +354,55 @@ namespace Unity.FPS.Game
             _animator.WriteDefaultValues();
         }
 
+        #region Play replaced animation
+        /// <summary>
+        /// Full body
+        /// Dummy_Idle
+        /// </summary>
+        /// <param name="Idle">anim affix</param>
+        public void PlayFullBodyAnim(string animAffix)
+        {
+            // replace Dummy_BodyAnim
+            var dummyState = Join(AnimNames.Dummy, AnimNames.BodyAnim);
+
+            PlayReplacedAnim(animAffix, dummyState, _fullBodyLayer);
+        }
+
+        /// <summary>
+        /// Weapon / Upper body
+        /// </summary>
+        /// <param name="animAffix"></param>
+        public void PlayUpperBodyAnim(string animAffix)
+        {
+            // replace Dummy_BodyAnim
+            var dummyState = Join(AnimNames.Dummy, AnimNames.BodyAnim);
+
+            PlayReplacedAnim(animAffix, dummyState, _weaponLayer);
+        }
+
+        protected void PlayReplacedAnim(string animAffix,
+            string dummyState,
+            int layer)
+        {
+            var matchAnims = _pawnAnims.Where(it => it.name.EndsWith(animAffix)).ToList();
+            Debug.Assert(matchAnims.Any());
+
+            var replacedAnim = matchAnims.FirstOrDefault();
+
+            if (replacedAnim != null)
+            {
+                // todo ref, bug?
+                if(_animOverrideCon == null) { ChangeAnimController(); }
+
+                _animOverrideCon[dummyState]
+                    = replacedAnim;
+
+                // play dummyState
+                _animator.Play(dummyState, layer);
+            }
+        }
+
+        #endregion
+        //
     }
 }

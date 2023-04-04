@@ -8,7 +8,7 @@ namespace Unity.FPS.Gameplay
     /// <summary>
     /// PlayerPawn
     /// </summary>
-    [RequireComponent(typeof(CharacterController), typeof(PlayerInputHandler))]
+    [RequireComponent(typeof(CharacterController), typeof(PlayerInputManager))]
     public class PlayerController : PawnController
     {
         protected new PlayerWeaponsManager _weaponsManager;
@@ -33,8 +33,9 @@ namespace Unity.FPS.Gameplay
         #endregion
 
         #region Input / Movement
-        protected PlayerInputHandler _inputHandler;
-        CharacterController m_Controller;
+        protected PlayerInputManager _inputManager;
+        // public for draw gizmos, todo ref
+        public CharacterController characterController;
 
         Vector3 m_GroundNormal;
 
@@ -53,12 +54,12 @@ namespace Unity.FPS.Gameplay
         {
             base.Init();
 
-            m_Controller = GetComponent<CharacterController>();
-            DebugUtility.HandleErrorIfNullGetComponent<CharacterController, PlayerController>(m_Controller,
+            characterController = GetComponent<CharacterController>();
+            DebugUtility.HandleErrorIfNullGetComponent<CharacterController, PlayerController>(characterController,
                 this, gameObject);
 
-            _inputHandler = GetComponent<PlayerInputHandler>();
-            DebugUtility.HandleErrorIfNullGetComponent<PlayerInputHandler, PlayerController>(_inputHandler,
+            _inputManager = GetComponent<PlayerInputManager>();
+            DebugUtility.HandleErrorIfNullGetComponent<PlayerInputManager, PlayerController>(_inputManager,
                 this, gameObject);
 
             _weaponsManager = GetComponent<PlayerWeaponsManager>();
@@ -68,7 +69,10 @@ namespace Unity.FPS.Gameplay
             // set in bot
             ActorsManager actorsManager = FindObjectOfType<ActorsManager>();
             if (actorsManager != null)
+            {
                 actorsManager.SetPlayer(gameObject);
+            }
+            m_Actor.isPlayer = true;
 
             // player camera face, todo not working
             //Camera3P.transform.localRotation = Quaternion.identity;
@@ -79,18 +83,15 @@ namespace Unity.FPS.Gameplay
         {
             base.Start();
 
-            uiInventory = GameFlowManager.Instance.GetComponentInChildren<UI_Inventory>();
-            uiEquipment = GameFlowManager.Instance.GetComponentInChildren<UI_PawnEquipment>();
+            uiInventory = GameFlowManager.Ins.GetComponentInChildren<UI_Inventory>();
+            uiEquipment = GameFlowManager.Ins.GetComponentInChildren<UI_PawnEquipment>();
 
             SetCameraLayer();
             SwitchView(isFirstView: true);
 
-            m_Controller.enableOverlapRecovery = true;
+            characterController.enableOverlapRecovery = true;
             // force the crouch state to false when starting
             SetCrouchingState(false, true);
-
-
-
 
         }
 
@@ -98,12 +99,12 @@ namespace Unity.FPS.Gameplay
         {
             base.Update();
 
-            if (_inputHandler.GetInputDown(ButtonNames.ThrowWeapon))
+            if (_inputManager.GetInputDown(ButtonNames.ThrowWeapon))
             {
                 ThrowWeapon();
             }
 
-            if (_inputHandler.GetInputDown(ButtonNames.SwitchCamera))
+            if (_inputManager.GetInputDown(ButtonNames.SwitchCamera))
             {
                 SwitchView(!isFirstPerson);
             }
@@ -112,24 +113,29 @@ namespace Unity.FPS.Gameplay
 
             UpdateBodyHeight(false);
 
+            //// todo test
+            //if(Input.GetKeyDown(KeyCode.I))
+            //{
+            //    TurnNano();
+            //}
         }
 
         private void SetCameraLayer()
         {
-            Camera1P_Main.cullingMask = GameFlowManager.Instance
+            Camera1P_Main.cullingMask = GameFlowManager.Ins
                 .Camera1PLayer;
-            _weaponsManager.SetCameraLayer(GameFlowManager.Instance
+            _weaponsManager.SetCameraLayer(GameFlowManager.Ins
                 .Camera1PWeaponLayer);
 
 
-            Camera3P.cullingMask = GameFlowManager.Instance
+            Camera3P.cullingMask = GameFlowManager.Ins
                 .Camera3PLayer;
         }
 
 
         protected override void UpdateMovement()
         {
-            IsSprinting = _inputHandler.GetInputHeld(ButtonNames.Sprint);
+            IsSprinting = _inputManager.GetInputHeld(ButtonNames.Sprint);
 
             // character movement handling
             {
@@ -143,7 +149,7 @@ namespace Unity.FPS.Gameplay
                 // WASD
                 // converts move input to a worldspace vector based on our character's transform orientation
                 Vector3 worldspaceMoveInput = transform.TransformVector
-                    (_inputHandler.GetMoveInput());
+                    (_inputManager.GetMoveInput());
 
                 // handle grounded movement
                 if (IsGrounded)
@@ -195,7 +201,7 @@ namespace Unity.FPS.Gameplay
                     //}
 
                     // jumping
-                    if (IsGrounded && _inputHandler.GetJumpInputDown())
+                    if (IsGrounded && _inputManager.GetJumpInputDown())
                     {
                         // force the crouch state to false
                         if (SetCrouchingState(false, false))
@@ -207,10 +213,10 @@ namespace Unity.FPS.Gameplay
                             CharacterVelocity += Vector3.up * JumpForce;
 
                             // anims
-                            AnimController.TriggerJump();
+                            animController.TriggerJump();
 
                             // play sound
-                            AnimController.PlayOneShot(JumpSfx);
+                            animController.PlayOneShot(JumpSfx);
 
                             // remember last time we jumped because we need to prevent snapping to ground for a short time
                             m_LastTimeJumped = Time.time;
@@ -245,14 +251,14 @@ namespace Unity.FPS.Gameplay
 
             // apply velocity
             Vector3 capsuleBottomBeforeMove = GetCapsuleBottomCenterPoint();
-            Vector3 capsuleTopBeforeMove = GetCapsuleTopCenterPoint(m_Controller.height);
-            m_Controller.Move(CharacterVelocity * Time.deltaTime);
+            Vector3 capsuleTopBeforeMove = GetCapsuleTopCenterPoint(characterController.height);
+            characterController.Move(CharacterVelocity * Time.deltaTime);
 
             // detect obstructions
             m_LatestImpactSpeed = Vector3.zero;
             if (Physics.CapsuleCast(capsuleBottomBeforeMove,
                 capsuleTopBeforeMove,
-                m_Controller.radius,
+                characterController.radius,
                 CharacterVelocity.normalized,
                 out RaycastHit hit,
                 CharacterVelocity.magnitude * Time.deltaTime,
@@ -282,20 +288,20 @@ namespace Unity.FPS.Gameplay
                 if (RecievesFallDamage && fallSpeedRatio > 0f)
                 {
                     float dmgFromFall = Mathf.Lerp(FallDamageAtMinSpeed, FallDamageAtMaxSpeed, fallSpeedRatio);
-                    m_Health.TakeDamage(dmgFromFall, null);
+                    _health.TakeDamage(dmgFromFall, EDamageType.Fall, null);
 
                     // fall damage SFX
-                    AnimController.PlayOneShot(GetClip(AllClips.PLAYER_DROP_SCREAM));
+                    animController.PlayOneShot(GetClip(AllClips.PLAYER_DROP_SCREAM));
                 }
                 else
                 {
                     // land SFX
-                    AnimController.PlayOneShot(LandSfx);
+                    animController.PlayOneShot(LandSfx);
                 }
             }
 
             // crouching
-            if (_inputHandler.GetCrouchInputDown())
+            if (_inputManager.GetCrouchInputDown())
             {
                 SetCrouchingState(!IsCrouching, false);
             }
@@ -305,9 +311,10 @@ namespace Unity.FPS.Gameplay
         {
             base.UpdateBodyHeight(force);
 
-            m_Controller.height = _bodyHeight;
-            m_Controller.center = _bodyCenter;
+            characterController.height = _bodyHeight;
+            characterController.center = _bodyCenter;
 
+            // todo ref
             //var camera1PHeight = IsCrouching ?
             //    CameraHeightCrouching
             //    : CameraHeightStanding;
@@ -417,8 +424,8 @@ namespace Unity.FPS.Gameplay
         protected void UpdateCamera()
         {
             var rotationSpeedFinal = RotationSpeed * RotationMultiplier;
-            var rotationX = _inputHandler.GetMouseX() * rotationSpeedFinal;
-            var rotationY = _inputHandler.GetMouseY() * rotationSpeedFinal;
+            var rotationX = _inputManager.GetMouseX() * rotationSpeedFinal;
+            var rotationY = _inputManager.GetMouseY() * rotationSpeedFinal;
 
             #region 1P
             // X rotation, rotate by Y
@@ -515,10 +522,10 @@ namespace Unity.FPS.Gameplay
         {
             base.UpdateAnimator();
 
-            AnimController.XInput = _inputHandler.GetMoveInputX();
-            AnimController.YInput = _inputHandler.GetMoveInputY();
-            AnimController.MoveSpeed = new Vector3
-                (m_Controller.velocity.x, m_Controller.velocity.y, 0)
+            animController.XInput = _inputManager.GetMoveInputX();
+            animController.YInput = _inputManager.GetMoveInputY();
+            animController.MoveSpeed = new Vector3
+                (characterController.velocity.x, characterController.velocity.y, 0)
                 .magnitude;
 
         }
@@ -531,7 +538,7 @@ namespace Unity.FPS.Gameplay
             // Make sure that the ground check distance while already in air is very small, to prevent suddenly snapping to ground
             chosenGroundCheckDistance =
                 IsGrounded ?
-                (m_Controller.skinWidth + GroundCheckDistance)
+                (characterController.skinWidth + GroundCheckDistance)
                 : k_GroundCheckDistanceInAir;
 
             // reset values before the ground check
@@ -543,8 +550,8 @@ namespace Unity.FPS.Gameplay
             {
                 // if we're grounded, collect info about the ground normal with a downward capsule cast representing our character capsule
                 if (Physics.CapsuleCast(GetCapsuleBottomCenterPoint(),
-                    GetCapsuleTopCenterPoint(m_Controller.height),
-                    m_Controller.radius,
+                    GetCapsuleTopCenterPoint(characterController.height),
+                    characterController.radius,
                     Vector3.down,
                     out RaycastHit hit,
                     chosenGroundCheckDistance,
@@ -562,9 +569,9 @@ namespace Unity.FPS.Gameplay
                         IsGrounded = true;
 
                         // handle snapping to the ground
-                        if (hit.distance > m_Controller.skinWidth)
+                        if (hit.distance > characterController.skinWidth)
                         {
-                            m_Controller.Move(Vector3.down * hit.distance);
+                            characterController.Move(Vector3.down * hit.distance);
                         }
                     }
                 }
@@ -574,7 +581,7 @@ namespace Unity.FPS.Gameplay
         // Returns true if the slope angle represented by the given normal is under the slope angle limit of the character controller
         bool IsNormalUnderSlopeLimit(Vector3 normal)
         {
-            return Vector3.Angle(transform.up, normal) <= m_Controller.slopeLimit;
+            return Vector3.Angle(transform.up, normal) <= characterController.slopeLimit;
         }
 
 
@@ -585,7 +592,7 @@ namespace Unity.FPS.Gameplay
 
             // only update horizontal
             var animMove = new Vector3(_deltaPosition.x, 0, _deltaPosition.z);//_rigid.position += _deltaPosition;
-            m_Controller.Move(animMove);
+            characterController.Move(animMove);
             //CharacterVelocity += animMove / Time.deltaTime;
 
             _deltaPosition = Vector3.zero;
@@ -597,13 +604,13 @@ namespace Unity.FPS.Gameplay
         // Gets the center point of the bottom hemisphere of the character controller capsule    
         Vector3 GetCapsuleBottomCenterPoint()
         {
-            return transform.position + (transform.up * m_Controller.radius);
+            return transform.position + (transform.up * characterController.radius);
         }
 
         // Gets the center point of the top hemisphere of the character controller capsule    
         Vector3 GetCapsuleTopCenterPoint(float atHeight)
         {
-            return transform.position + (transform.up * (atHeight - m_Controller.radius));
+            return transform.position + (transform.up * (atHeight - characterController.radius));
         }
 
         /// <summary>
@@ -627,13 +634,13 @@ namespace Unity.FPS.Gameplay
                     Collider[] standingOverlaps = Physics.OverlapCapsule(
                         GetCapsuleBottomCenterPoint(),
                         GetCapsuleTopCenterPoint(CapsuleHeightStanding),
-                        m_Controller.radius,
+                        characterController.radius,
                         _moveCheckLayer,
                         QueryTriggerInteraction.Ignore);
 
                     foreach (Collider c in standingOverlaps)
                     {
-                        if (c != m_Controller)
+                        if (c != characterController)
                         {
                             return false;
                         }
@@ -679,7 +686,7 @@ namespace Unity.FPS.Gameplay
             {
                 spread /= 2;
             }
-            Debug.Log(spread);
+            //Debug.Log(spread);
 
             // ray
             Ray ray = (isFirstPerson ? Camera1P_Main : Camera3P) // TPS is off centered
@@ -712,9 +719,9 @@ namespace Unity.FPS.Gameplay
             Physics.SyncTransforms();
 
             IsDead = false;
-            AnimController.ResetAnimator();
+            animController.ResetAnimator();
             _weaponsManager.ChangeToNextWeapon();
-            m_Health.ResetHealth();
+            _health.ResetHealth();
         }
 
         // Called in anim?

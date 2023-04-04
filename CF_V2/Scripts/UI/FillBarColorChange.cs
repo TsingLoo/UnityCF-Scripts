@@ -3,6 +3,8 @@ using UnityEngine.UI;
 
 namespace Unity.FPS.UI
 {
+    // todo check use
+    // jetpack fill bar color
     public class FillBarColorChange : MonoBehaviour
     {
         [Header("Foreground")] [Tooltip("Image for the foreground")]
