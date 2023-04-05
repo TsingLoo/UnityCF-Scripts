@@ -1,0 +1,7 @@
+The project (V2) is Based on FPS MicroGame.
+
+How to get assets:
+1, Weapons/Characters asset, use hlmv to decompile CS1.6 .mdl file, then import to blender (addon: blender_source_tools_3.2.5)
+2, Maps asset, use bspSource to convert CSS/CSGO map to vmf, then import to blender (addon: io_import_vmf-windows)
+  tutorial: https://www.youtube.com/watch?v=tMQt8RHkDzA
+   (You can also use crafty to convert CS1.6 map to obj, then import to blender)
