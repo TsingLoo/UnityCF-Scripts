@@ -1,4 +1,6 @@
 The project (V2) is Based on FPS MicroGame.
+Link:
+https://github.com/csm12s/UnityCF-Scripts.git
 
 How to get assets:
 1, Weapons/Characters asset, use hlmv to decompile CS1.6 .mdl file, then import to blender (addon: blender_source_tools_3.2.5)
